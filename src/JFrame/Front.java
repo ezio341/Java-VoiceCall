@@ -25,6 +25,7 @@ import javax.sound.sampled.DataLine;
 import javax.sound.sampled.SourceDataLine;
 import javax.sound.sampled.TargetDataLine;
 import javax.swing.JOptionPane;
+import javax.swing.JTextArea;
 
 /**
  *
@@ -59,7 +60,7 @@ public class Front extends javax.swing.JFrame {
         jLabel3 = new javax.swing.JLabel();
         btnConnect = new javax.swing.JButton();
         jScrollPane1 = new javax.swing.JScrollPane();
-        jTextArea1 = new javax.swing.JTextArea();
+        textArea = new javax.swing.JTextArea();
         btnRec = new javax.swing.JButton();
         editIPDestinantion = new javax.swing.JTextField();
         jLabel1 = new javax.swing.JLabel();
@@ -79,9 +80,9 @@ public class Front extends javax.swing.JFrame {
             }
         });
 
-        jTextArea1.setColumns(20);
-        jTextArea1.setRows(5);
-        jScrollPane1.setViewportView(jTextArea1);
+        textArea.setColumns(20);
+        textArea.setRows(5);
+        jScrollPane1.setViewportView(textArea);
 
         btnRec.setText("Speak");
         btnRec.setEnabled(false);
@@ -170,8 +171,9 @@ public class Front extends javax.swing.JFrame {
         try {
             if(btnConnect.getText().equalsIgnoreCase("Connect")){
                 ds = new DatagramSocket(Integer.valueOf(editPorthost.getText()), InetAddress.getByName(editIPhost.getText()));
-                ClientThread clientThread = new ClientThread(ds, InputStream, sourceLine);
+                ClientThread clientThread = new ClientThread(ds, InputStream, sourceLine, this);
                 clientThread.start();
+                
                 btnConnect.setText("Connected");
                 btnRec.setEnabled(true);
                 btnConnect.setEnabled(false);
@@ -274,6 +276,10 @@ public class Front extends javax.swing.JFrame {
         }
     }
     
+    public JTextArea getTxtArea(){
+        return textArea;
+    }
+    
     class CaptureThread extends Thread {
 
         byte tempBuffer[] = new byte[10000];
@@ -365,6 +371,6 @@ public class Front extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JScrollPane jScrollPane1;
-    private javax.swing.JTextArea jTextArea1;
+    private javax.swing.JTextArea textArea;
     // End of variables declaration//GEN-END:variables
 }

@@ -28,12 +28,14 @@ public class ClientThread extends Thread{
     DatagramSocket ds;
     AudioInputStream InputStream;
     SourceDataLine sourceLine;
+    Front view;
     private boolean isStopped = false;
 
-    public ClientThread(DatagramSocket ds, AudioInputStream InputStream, SourceDataLine sourceLine) {
+    public ClientThread(DatagramSocket ds, AudioInputStream InputStream, SourceDataLine sourceLine, Front view) {
         this.ds = ds;
         this.InputStream = InputStream;
         this.sourceLine = sourceLine;
+        this.view = view;
     }
     
     @Override
@@ -51,6 +53,7 @@ public class ClientThread extends Thread{
             DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
             ds.receive(receivePacket);
             System.out.println("RECEIVED: " + receivePacket.getAddress().getHostAddress() + " " + receivePacket.getPort());
+            view.getTxtArea().append("RECEIVED: " + receivePacket.getAddress().getHostAddress() + " " + receivePacket.getPort() + "\n");
             try {
                 byte audioData[] = receivePacket.getData();
                 InputStream byteInputStream = new ByteArrayInputStream(audioData);
