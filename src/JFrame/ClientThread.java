@@ -52,8 +52,10 @@ public class ClientThread extends Thread{
         while (true) {
             DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
             ds.receive(receivePacket);
-            view.getjTextArea1().append("RECEIVED: " + receivePacket.getAddress().getHostAddress() + " " + receivePacket.getPort()+"\n");
+            view.getTextArea().append("RECEIVED: " + receivePacket.getAddress().getHostAddress() + " " + receivePacket.getPort()+"\n");
 //            System.out.println("RECEIVED: " + receivePacket.getAddress().getHostAddress() + " " + receivePacket.getPort());
+            System.out.println("RECEIVED: " + receivePacket.getAddress().getHostAddress() + " " + receivePacket.getPort());
+            view.getTxtArea().append("RECEIVED: " + receivePacket.getAddress().getHostAddress() + " " + receivePacket.getPort() + "\n");
             try {
                 byte audioData[] = receivePacket.getData();
                 InputStream byteInputStream = new ByteArrayInputStream(audioData);
