@@ -7,6 +7,7 @@ package JFrame;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.DatagramPacket;
@@ -18,6 +19,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.sound.sampled.AudioFileFormat;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
@@ -25,6 +27,7 @@ import javax.sound.sampled.DataLine;
 import javax.sound.sampled.SourceDataLine;
 import javax.sound.sampled.TargetDataLine;
 import javax.swing.JOptionPane;
+import javax.swing.JTextArea;
 
 /**
  *
@@ -133,7 +136,7 @@ public class Front extends javax.swing.JFrame {
                         .addComponent(jLabel1)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(editIPDestinantion, javax.swing.GroupLayout.PREFERRED_SIZE, 91, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(140, 140, 140)
+                        .addGap(152, 152, 152)
                         .addComponent(btnRec)
                         .addGap(18, 18, 18)
                         .addComponent(btnPlayback, javax.swing.GroupLayout.PREFERRED_SIZE, 85, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -170,7 +173,7 @@ public class Front extends javax.swing.JFrame {
         try {
             if(btnConnect.getText().equalsIgnoreCase("Connect")){
                 ds = new DatagramSocket(Integer.valueOf(editPorthost.getText()), InetAddress.getByName(editIPhost.getText()));
-                ClientThread clientThread = new ClientThread(ds, InputStream, sourceLine);
+                ClientThread clientThread = new ClientThread(ds, InputStream, sourceLine, this);
                 clientThread.start();
                 btnConnect.setText("Connected");
                 btnRec.setEnabled(true);
@@ -188,7 +191,7 @@ public class Front extends javax.swing.JFrame {
         // TODO add your handling code here:
         if(btnRec.getText().equalsIgnoreCase("Speak")){
             captureAudio();
-            btnRec.setText("Recording");
+            btnRec.setText("Stop");
         }else{
             stopaudioCapture = true;
             btnRec.setText("Speak");
@@ -294,6 +297,16 @@ public class Front extends javax.swing.JFrame {
                     }
                 }
                 byteOutputStream.close();
+                File file = new File("asdasd.wav");
+                byte audioData[] = byteOutputStream.toByteArray();
+                InputStream byteInputStream = new ByteArrayInputStream(audioData);
+                AudioFormat format = getAudioFormat();
+                AudioInputStream is = new AudioInputStream(byteInputStream, format, audioData.length / format.getFrameSize());
+                try {
+                    AudioSystem.write(is, AudioFileFormat.Type.WAVE, file);
+                } catch (IOException ex) {
+                    Logger.getLogger(Front.class.getName()).log(Level.SEVERE, null, ex);
+                }
             } catch (Exception e) {
                 System.out.println("CaptureThread::run()" + e);
             }
@@ -353,6 +366,12 @@ public class Front extends javax.swing.JFrame {
             }
         });
     }
+
+    public JTextArea getjTextArea1() {
+        return jTextArea1;
+    }
+
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnConnect;
