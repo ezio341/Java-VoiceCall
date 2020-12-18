@@ -15,6 +15,8 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
@@ -302,7 +304,14 @@ public class Front extends javax.swing.JFrame {
                     }
                 }
                 byteOutputStream.close();
-                File file = new File("asdasd.wav");
+                
+                SimpleDateFormat dateformat = new SimpleDateFormat("dd MMMM yyyy");
+                SimpleDateFormat timeformat = new SimpleDateFormat("hh mm ss a");
+                
+                String time = timeformat.format(new Date());
+                
+
+                File file = new File("vn-" + time + ".wav");
                 byte audioData[] = byteOutputStream.toByteArray();
                 InputStream byteInputStream = new ByteArrayInputStream(audioData);
                 AudioFormat format = getAudioFormat();
