@@ -292,6 +292,7 @@ public class Front extends javax.swing.JFrame {
                         //send the packet using datagram to a certain ip address and server port
                         DatagramPacket sendPacket = new DatagramPacket(tempBuffer, tempBuffer.length, IPAddress, serverport);
                         ds.send(sendPacket);
+                        //outputstream to reuse as playback and saved as file
                         byteOutputStream.write(tempBuffer, 0, cnt);
                     }
                 }

@@ -12,6 +12,8 @@ import java.io.InputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.TargetDataLine;
@@ -57,8 +59,8 @@ public class Server {
                 InputStream byteInputStream = new ByteArrayInputStream(audioData);
                 AudioFormat format = getAudioFormat();
                 InputStream = new AudioInputStream(byteInputStream, format, audioData.length / format.getFrameSize());
-                Thread playThread = new Thread(new PlayThread(receivePacket.getAddress(), receivePacket.getPort()));
-                playThread.start();
+                ExecutorService exe = Executors.newFixedThreadPool(10);
+                exe.submit(new PlayThread(receivePacket.getAddress(), receivePacket.getPort()));
             }
         } catch (IOException e) {
             System.out.println(e.getMessage());
