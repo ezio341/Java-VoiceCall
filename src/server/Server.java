@@ -7,30 +7,28 @@ package server;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.DataLine;
-import javax.sound.sampled.SourceDataLine;
 import javax.sound.sampled.TargetDataLine;
 
 /**
  *
- * @author ASUS
+ * @author WE
  */
 public class Server {
     ByteArrayOutputStream byteOutputStream;
     AudioFormat adFormat;
     TargetDataLine targetDataLine;
     AudioInputStream InputStream;
-    SourceDataLine sourceLine;
     DatagramSocket serverSocket;
 
     private AudioFormat getAudioFormat() {
+        //Audio Format Configuration
         float sampleRate = 16000.0F;
         int sampleInbits = 16;
         int channels = 1;
@@ -45,30 +43,25 @@ public class Server {
 
     public void runVOIP() {
         try {
+            //set server datagam socket
             serverSocket = new DatagramSocket(900);
+            //data container from any client
             byte[] receiveData = new byte[10000];
             while (true) {
+                //packet receiver to set data into container (receivedata)
                 DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+                //set datagram socket receiver
                 serverSocket.receive(receivePacket);
                 System.out.println("RECEIVED: " + receivePacket.getAddress().getHostAddress() + " " + receivePacket.getPort());
-                try {
-                    byte audioData[] = receivePacket.getData();
-                    InputStream byteInputStream = new ByteArrayInputStream(audioData);
-                    AudioFormat adFormat = getAudioFormat();
-                    InputStream = new AudioInputStream(byteInputStream, adFormat, audioData.length / adFormat.getFrameSize());
-                    DataLine.Info dataLineInfo = new DataLine.Info(SourceDataLine.class, adFormat);
-                    sourceLine = (SourceDataLine) AudioSystem.getLine(dataLineInfo);
-                    sourceLine.open(adFormat);
-                    sourceLine.start();
-                    Thread playThread = new Thread(new PlayThread(receivePacket.getAddress(), receivePacket.getPort()));
-                    playThread.start();
-                } catch (Exception e) {
-                    System.out.println(e);
-                    System.exit(0);
-                }
+                byte audioData[] = receivePacket.getData();
+                InputStream byteInputStream = new ByteArrayInputStream(audioData);
+                AudioFormat format = getAudioFormat();
+                InputStream = new AudioInputStream(byteInputStream, format, audioData.length / format.getFrameSize());
+                Thread playThread = new Thread(new PlayThread(receivePacket.getAddress(), receivePacket.getPort()));
+                playThread.start();
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
         }
     }
 
@@ -86,6 +79,7 @@ public class Server {
             this.port = port;
         }
         
+        @Override
         public void run() {
             try {
                 int cnt;
@@ -98,7 +92,7 @@ public class Server {
                 }
                 //  sourceLine.drain();
                 // sourceLine.close();
-            } catch (Exception e) {
+            } catch (IOException e) {
                 System.out.println(e);
                 System.exit(0);
             }

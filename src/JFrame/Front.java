@@ -13,12 +13,9 @@ import java.io.InputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.sound.sampled.AudioFileFormat;
@@ -26,6 +23,7 @@ import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.DataLine;
+import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
 import javax.sound.sampled.TargetDataLine;
 import javax.swing.JOptionPane;
@@ -33,17 +31,17 @@ import javax.swing.JTextArea;
 
 /**
  *
- * @author ASUS
+ * @author WE
  */
 public class Front extends javax.swing.JFrame {
-    DatagramSocket ds;
-    boolean stopaudioCapture = false;
-    ByteArrayOutputStream byteOutputStream;
-    AudioFormat adFormat;
-    TargetDataLine targetDataLine;
-    AudioInputStream InputStream;
-    SourceDataLine sourceLine;
-    int serverport = 900;
+    private DatagramSocket ds;
+    private boolean stopaudioCapture = false;
+    private ByteArrayOutputStream byteOutputStream;
+    private AudioFormat adFormat;
+    private TargetDataLine targetDataLine; //hardware (Microphone)
+    private AudioInputStream InputStream;
+    private SourceDataLine sourceLine; //hardware (Speaker)
+    private int serverport = 900;
 
     /**
      * Creates new form Front
@@ -174,7 +172,10 @@ public class Front extends javax.swing.JFrame {
         // TODO add your handling code here:
         try {
             if(btnConnect.getText().equalsIgnoreCase("Connect")){
+                
+                //connect to datagram socket, default InetAddress is localhost
                 ds = new DatagramSocket(Integer.valueOf(editPorthost.getText()), InetAddress.getByName(editIPhost.getText()));
+                //run the listener from server, 
                 ClientThread clientThread = new ClientThread(ds, InputStream, sourceLine, this);
                 clientThread.start();
                 
@@ -193,11 +194,13 @@ public class Front extends javax.swing.JFrame {
     private void btnRecActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRecActionPerformed
         // TODO add your handling code here:
         if(btnRec.getText().equalsIgnoreCase("Speak")){
+            //if button speak click, start capturing audio
             captureAudio();
             btnRec.setText("Stop");
         }else{
             stopaudioCapture = true;
             btnRec.setText("Speak");
+            //after finish speaking, close the data line listener
             targetDataLine.close();
         }
     }//GEN-LAST:event_btnRecActionPerformed
@@ -217,38 +220,48 @@ public class Front extends javax.swing.JFrame {
         try {
             adFormat = getAudioFormat();
             DataLine.Info dataLineInfo = new DataLine.Info(TargetDataLine.class, adFormat);
+            
+            //Get System microphone
             targetDataLine = (TargetDataLine) AudioSystem.getLine(dataLineInfo);
             targetDataLine.open(adFormat);
+            //Start listening input from microphone
             targetDataLine.start();
-
+            
+            //capturing buffer, sending packet, convert buffer into a file
             Thread captureThread = new Thread(new CaptureThread());
             captureThread.start();
-        } catch (Exception e) {
+        } catch (LineUnavailableException e) {
             StackTraceElement stackEle[] = e.getStackTrace();
             for (StackTraceElement val : stackEle) {
                 System.out.println(val);
             }
-            System.exit(0);
+            targetDataLine.close();
         }
     }
     private void playAudio() {
         try {
+            //take audio buffer to an array of bytes
             byte audioData[] = byteOutputStream.toByteArray();
             InputStream byteInputStream = new ByteArrayInputStream(audioData);
-            AudioFormat adFormat = getAudioFormat();
-            InputStream = new AudioInputStream(byteInputStream, adFormat, audioData.length / adFormat.getFrameSize());
-            DataLine.Info dataLineInfo = new DataLine.Info(SourceDataLine.class, adFormat);
+            AudioFormat format = getAudioFormat();
+            InputStream = new AudioInputStream(byteInputStream, format, audioData.length / format.getFrameSize());
+            //get dataline or hardware (speaker) information
+            DataLine.Info dataLineInfo = new DataLine.Info(SourceDataLine.class, format);
+            //Library: Source Data Line
             sourceLine = (SourceDataLine) AudioSystem.getLine(dataLineInfo);
-            sourceLine.open(adFormat);
+            sourceLine.open(format);
+            //start listening for an output
             sourceLine.start();
+            //play audio using thread
             Thread playThread = new Thread(new PlayThread());
             playThread.start();
-        } catch (Exception e) {
+        } catch (LineUnavailableException e) {
             System.out.println(e);
-            System.exit(0);
+            sourceLine.close();
         }
     }
     private AudioFormat getAudioFormat() {
+        //Audio format configuration
         float sampleRate = 16000.0F;
         int sampleInbits = 16;
         int channels = 1;
@@ -256,36 +269,13 @@ public class Front extends javax.swing.JFrame {
         boolean bigEndian = false;
         return new AudioFormat(sampleRate, sampleInbits, channels, signed, bigEndian);
     }
-    private void receivePacket() throws IOException{
-        byte[] receiveData = new byte[10000];
-        while (true) {
-            DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
-            ds.receive(receivePacket);
-            System.out.println("RECEIVED: " + receivePacket.getAddress().getHostAddress() + " " + receivePacket.getPort());
-            try {
-                byte audioData[] = receivePacket.getData();
-                InputStream byteInputStream = new ByteArrayInputStream(audioData);
-                AudioFormat adFormat = getAudioFormat();
-                InputStream = new AudioInputStream(byteInputStream, adFormat, audioData.length / adFormat.getFrameSize());
-                DataLine.Info dataLineInfo = new DataLine.Info(SourceDataLine.class, adFormat);
-                sourceLine = (SourceDataLine) AudioSystem.getLine(dataLineInfo);
-                sourceLine.open(adFormat);
-                sourceLine.start();
-                Thread playThread = new Thread(new PlayThread());
-                playThread.start();
-            } catch (Exception e) {
-                System.out.println(e);
-                System.exit(0);
-            }
-        }
-    }
     
     public JTextArea getTxtArea(){
         return textArea;
     }
     
     class CaptureThread extends Thread {
-
+        //save the buffer from targetdataline or buffer container
         byte tempBuffer[] = new byte[10000];
 
         @Override
@@ -298,6 +288,8 @@ public class Front extends javax.swing.JFrame {
                 while (!stopaudioCapture) {
                     int cnt = targetDataLine.read(tempBuffer, 0, tempBuffer.length);
                     if (cnt > 0) {
+                        
+                        //send the packet using datagram to a certain ip address and server port
                         DatagramPacket sendPacket = new DatagramPacket(tempBuffer, tempBuffer.length, IPAddress, serverport);
                         ds.send(sendPacket);
                         byteOutputStream.write(tempBuffer, 0, cnt);
@@ -305,42 +297,49 @@ public class Front extends javax.swing.JFrame {
                 }
                 byteOutputStream.close();
                 
+                /*===================================================
+                After recording stopped, convert audio buffer into a file
+                */
                 SimpleDateFormat dateformat = new SimpleDateFormat("dd MMMM yyyy");
                 SimpleDateFormat timeformat = new SimpleDateFormat("hh mm ss a");
                 
                 String time = timeformat.format(new Date());
-                
-
+                //setup file name and extension
                 File file = new File("vn-" + time + ".wav");
+                //Audio buffer taken from byteoutputstream in form of byte array
                 byte audioData[] = byteOutputStream.toByteArray();
                 InputStream byteInputStream = new ByteArrayInputStream(audioData);
                 AudioFormat format = getAudioFormat();
                 AudioInputStream is = new AudioInputStream(byteInputStream, format, audioData.length / format.getFrameSize());
                 try {
+                    //create the file
                     AudioSystem.write(is, AudioFileFormat.Type.WAVE, file);
                 } catch (IOException ex) {
                     Logger.getLogger(Front.class.getName()).log(Level.SEVERE, null, ex);
                 }
-            } catch (Exception e) {
+                //=====================================================
+                
+            } catch (IOException e) {
                 System.out.println("CaptureThread::run()" + e);
             }
         }
     }
     class PlayThread implements Runnable{
-
+        //buffer container
         byte tempBuffer[] = new byte[10000];
 
+        @Override
         public void run() {
             try {
                 int cnt;
+                //read buffer from audio inputstream
                 while ((cnt = InputStream.read(tempBuffer, 0, tempBuffer.length)) != -1) {
                     if (cnt > 0) {
+                       //play the audio buffer using speaker
                        sourceLine.write(tempBuffer, 0, cnt);
                     }
                 }
-                //                sourceLine.drain();
-                //             sourceLine.close();
-            } catch (Exception e) {
+            } catch (IOException e) {
                 System.out.println(e);
                 System.exit(0);
             }
@@ -362,22 +361,16 @@ public class Front extends javax.swing.JFrame {
                     break;
                 }
             }
-        } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(Front.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(Front.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(Front.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | javax.swing.UnsupportedLookAndFeelException ex) {
             java.util.logging.Logger.getLogger(Front.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
         //</editor-fold>
+        
+        //</editor-fold>
 
         /* Create and display the form */
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                new Front().setVisible(true);
-            }
+        java.awt.EventQueue.invokeLater(() -> {
+            new Front().setVisible(true);
         });
     }
 
